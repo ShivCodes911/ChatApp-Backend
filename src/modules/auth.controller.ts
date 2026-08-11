@@ -1,15 +1,13 @@
-import type { Request,Response } from "express";
+import type { NextFunction, Request,Response } from "express";
 import userModel from "../models/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-import { signupSchema } from "../validation/user.validation.js";
-
-
-
+import { signinSchema, signupSchema } from "../validation/user.validation.js";
+import { fa } from "zod/locales";
 
 // /api/v1/auth/signup
-export const signup=async(req:Request , res:Response)=>{
+export const signup=async(req:Request , res:Response ,next:NextFunction)=>{
     try {
 
         const validationResult= await signupSchema.safeParseAsync(req.body);
@@ -66,10 +64,65 @@ export const signup=async(req:Request , res:Response)=>{
             
         });
 } catch (error) {
-    console.error(error)
-        return res.status(500).json({
-            status:false,
-           message:"Something went Wrong"
-        })
+   next(error);
      }
-}
+};
+
+
+// /api/v1/auth/signin
+export const signin = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const validationResult = await signinSchema.safeParseAsync(req.body);
+
+        if (!validationResult.success) {
+            return res.status(400).json({
+                status: false,
+                message: "Enter proper details"
+            });
+        }
+
+        const { email, password } = validationResult.data;
+
+        const existingUser = await userModel.findOne({ email });
+
+        // Same status + same message for both "no user" and "wrong password"
+        if (!existingUser) {
+            return res.status(401).json({
+                status: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        const matchedPassword = await bcrypt.compare(password, existingUser.password);
+
+        if (!matchedPassword) {
+            return res.status(401).json({
+                status: false,
+                message: "Invalid credentials"
+            });
+        }
+
+        if (!process.env.ACCESS_TOKEN_SECRET) {
+            throw new Error("Env Error");
+        }
+
+        const accessToken = jwt.sign(
+            { userId: existingUser._id },
+            process.env.ACCESS_TOKEN_SECRET,
+            { expiresIn: "2d" }   // matches signup's expiry now
+        );
+
+        return res.status(200).json({
+            status: true,
+            message: "Signed In Successfully",
+            user: {
+                userId: existingUser._id,
+                name: existingUser.name,
+                email: existingUser.email
+            },
+            accessToken   // flat, matches signup's response shape
+        });
+    } catch (error) {
+        next(error);
+    }
+};
