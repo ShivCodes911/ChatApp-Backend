@@ -4,7 +4,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 import { signinSchema, signupSchema } from "../validation/user.validation.js";
-import { fa } from "zod/locales";
+
 
 // /api/v1/auth/signup
 export const signup=async(req:Request , res:Response ,next:NextFunction)=>{
@@ -122,6 +122,39 @@ export const signin = async (req: Request, res: Response, next: NextFunction) =>
             },
             accessToken   // flat, matches signup's response shape
         });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+export const getMe = async (req: Request, res: Response , next:NextFunction) => {
+    try {
+        // req.user was added by userAuthMiddleware
+        const userId = req.user?.userId;
+
+        if (!userId) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized"
+            });
+        }
+
+        const user = await userModel.findById(userId).select("-password");
+
+        if (!user) {
+            return res.status(404).json({
+                status: false,
+                message: "User not found"
+            });
+        }
+
+        return res.status(200).json({
+            status: true,
+            message: "User fetched successfully",
+            user
+        });
+
     } catch (error) {
         next(error);
     }
