@@ -1,9 +1,9 @@
 import type { NextFunction, Request,Response } from "express";
-import userModel from "../models/user.model.js";
+import userModel from "../../models/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
-import { signinSchema, signupSchema } from "../validation/user.validation.js";
+import { signinSchema, signupSchema } from "../../validation/user.validation.js";
 
 
 // /api/v1/auth/signup
