@@ -5,8 +5,8 @@ import { createConversation, getConversation } from "./conversation.controller.j
 
 const router  = express.Router();
 
-router.post("/",userAuthMiddleware,createConversation)
-router.get("/",userAuthMiddleware,getConversation)
+router.post("/coversation",userAuthMiddleware,createConversation)
+router.get("/conversation",userAuthMiddleware,getConversation)
 
 
 export default router;

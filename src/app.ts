@@ -3,6 +3,7 @@ import helmet from "helmet";
 
 import authRouter from "./modules/auth/auth.routes.js";
 import conversationRouter from "./modules/conversation/conversation.routes.js"
+import messageRouter from "./modules/messages/messages.routes.js"
 
 import { errorMiddleware } from "./middlewares/error.middleware.js";
 
@@ -15,7 +16,8 @@ app.use(express.json());
 
 
 app.use("/api/v1/auth",authRouter);
-app.use("/api/v1/conversations",conversationRouter);
+app.use("/api/v1",conversationRouter);
+app.use("/api/v1",messageRouter);
 
 
 
