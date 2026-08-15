@@ -3,6 +3,7 @@ import ConversationModel from "../../models/conversation.model.js";
 import mongoose from "mongoose";
 
 import type { Request, Response, NextFunction } from "express";
+import { userAuthMiddleware } from "../../middlewares/auth.middleware.js";
 
 export const createMessage = async (
     req: Request,
@@ -77,3 +78,63 @@ export const createMessage = async (
         next(error);
     }
 };
+
+
+// GET /api/v1/conversations/:conversationId/messages
+
+
+export const getAllMessage=async(req:Request,res:Response,next:NextFunction)=>{
+    try {
+        const currentUserId=req.user?.userId;
+
+        if(!currentUserId){
+            return res.status(400).json({
+                status:false,
+                message:"Unauthorized"
+            })
+        };
+
+        const {conversationId} = req.params;
+
+        if(!conversationId || Array.isArray(conversationId)){
+            return res.status(400).json({
+                status:false,
+                message:"ID not provided in Params"
+            })
+        };
+
+
+        const conversation = await ConversationModel.findOne({
+    _id: conversationId,
+    participants: currentUserId
+});
+
+
+    if(!conversation){
+        return res.status(404).json({
+            status:false,
+            message:"Conversation not found"
+        })
+    };
+
+    const messages = await messageModel.find({
+    conversation: conversationId
+}).sort({createdAt:1});
+
+// 5. Check if conversation has no messages
+        if (messages.length === 0) {
+            return res.status(404).json({
+                status: false,
+                message: "No messages found"
+            });
+        }
+        return res.status(200).json({
+            status:true,
+            message:"Messages fetched successfully",
+            data:messages
+        })
+    } catch (error) {
+        next(error);
+        
+    }
+}
