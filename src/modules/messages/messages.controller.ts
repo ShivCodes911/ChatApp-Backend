@@ -220,3 +220,78 @@ export const deleteMessage=async(req:Request,res:Response,next:NextFunction)=>{
         
     }
 }
+
+// PATCH /api/v1/conversations/:conversationId/messages/:messageId
+
+export const editMessage =async(req:Request,res:Response,next:NextFunction)=>{
+    try {
+        const currentUserId=req.user?.userId;
+
+        if(!currentUserId){
+            return res.status(400).json({
+                status:false,
+                message:"Unauthorized"
+            })
+        };
+
+
+        const {conversationId,messageId}=req.params;
+
+        const {content }=req.body;
+
+        if(!content){
+            return res.status(400).json({
+                status:false,
+                message:"message content required"
+            })
+        }
+
+        if(!conversationId || Array.isArray(conversationId) || !messageId || Array.isArray(messageId)){
+            return res.status(400).json({
+                status:false,
+                message:"Invalid conversation ID or message ID"
+            })
+        };
+
+        const conversation = await ConversationModel.findOne({
+            _id:conversationId,
+            participants:currentUserId
+        });
+
+        if(!conversation){
+            return res.status(404).json({
+                status:false,
+                message:"conversation not found"
+            })
+        };
+
+        const message=await messageModel.findOne({
+            _id:messageId,
+            conversation:conversationId,
+            sender:currentUserId
+        });
+
+        if(!message){
+            return res.status(404).json({
+                status:false,
+                message:"MEssage not found"
+            })
+        };
+
+        message.content = content;
+
+        await message.save();
+
+
+        return res.status(200).json({
+    status: true,
+    message: "Message updated successfully",
+    data: message
+});
+
+
+    } catch (error) {
+        next(error);
+        
+    }
+}
