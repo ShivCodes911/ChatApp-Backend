@@ -81,7 +81,7 @@ export const createMessage = async (
 
 
 // GET /api/v1/conversations/:conversationId/messages
-
+// 
 
 export const getAllMessage=async(req:Request,res:Response,next:NextFunction)=>{
     try {
@@ -222,7 +222,7 @@ export const deleteMessage=async(req:Request,res:Response,next:NextFunction)=>{
 }
 
 // PATCH /api/v1/conversations/:conversationId/messages/:messageId
-
+// 
 export const editMessage =async(req:Request,res:Response,next:NextFunction)=>{
     try {
         const currentUserId=req.user?.userId;
@@ -294,4 +294,86 @@ export const editMessage =async(req:Request,res:Response,next:NextFunction)=>{
         next(error);
         
     }
-}
+};
+
+// PATCH /api/v1/conversations/:conversationId/messages/read
+
+export const markMessagesAsRead = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized"
+            });
+        }
+
+        const { conversationId } = req.params;
+
+        if (
+            !conversationId ||
+            Array.isArray(conversationId)
+        ) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid conversation ID"
+            });
+        }
+
+        // Check user belongs to this conversation
+        const conversation = await ConversationModel.findOne({
+            _id: conversationId,
+            participants: currentUserId
+        });
+
+        if (!conversation) {
+            return res.status(404).json({
+                status: false,
+                message: "Conversation not found"
+            });
+        }
+
+        // Mark messages from the other user as read
+        await messageModel.updateMany(
+            {
+                conversation: conversationId,
+                sender: { $ne: currentUserId },
+                isRead: false
+            },
+            {
+                $set: {
+                    isRead: true
+                }
+            }
+        );
+
+        // Get messages
+        const messages = await messageModel
+            .find({
+                conversation: conversationId
+            })
+            .populate("sender", "name email")
+            .sort({ createdAt: 1 });
+
+        if (messages.length === 0) {
+            return res.status(404).json({
+                status: false,
+                message: "No messages found"
+            });
+        }
+
+        return res.status(200).json({
+            status: true,
+            message: "Messages fetched successfully",
+            data: messages
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
