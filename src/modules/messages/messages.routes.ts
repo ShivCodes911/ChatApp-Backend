@@ -1,7 +1,7 @@
 import express from "express";
 
 import { userAuthMiddleware } from "../../middlewares/auth.middleware.js";
-import { createMessage, deleteMessage, editMessage, getAllMessage, markMessagesAsRead } from "./messages.controller.js";
+import { createMessage, deleteMessage, editMessage, getAllMessage, getUnreadMessageCount, markMessagesAsRead } from "./messages.controller.js";
 
 const router = express.Router();
 
@@ -10,6 +10,7 @@ router.get("/conversations/:conversationId/messages",userAuthMiddleware,getAllMe
 router.delete("/conversations/:conversationId/messages/:messageId",userAuthMiddleware,deleteMessage);
 router.patch("/conversations/:conversationId/messages/read",userAuthMiddleware,markMessagesAsRead);
 router.patch("/conversations/:conversationId/messages/:messageId",userAuthMiddleware,editMessage);
+router.get("/:conversationId/unread",userAuthMiddleware,getUnreadMessageCount);
 
 
 export default router;

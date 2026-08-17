@@ -3,7 +3,8 @@ import ConversationModel from "../../models/conversation.model.js";
 import mongoose from "mongoose";
 
 import type { Request, Response, NextFunction } from "express";
-import { userAuthMiddleware } from "../../middlewares/auth.middleware.js";
+
+
 
 export const createMessage = async (
     req: Request,
@@ -371,6 +372,71 @@ export const markMessagesAsRead = async (
             status: true,
             message: "Messages fetched successfully",
             data: messages
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+
+// GET /api/v1/conversations/unread
+
+
+export const getUnreadMessageCount = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        // 1. Get current authenticated user
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized"
+            });
+        }
+
+        // 2. Get conversation ID
+        const { conversationId } = req.params;
+
+        if (!conversationId || Array.isArray(conversationId)) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid conversation ID"
+            });
+        }
+
+        // 3. Check that user belongs to this conversation
+        const conversation = await ConversationModel.findOne({
+            _id: conversationId,
+            participants: currentUserId
+        });
+
+        if (!conversation) {
+            return res.status(404).json({
+                status: false,
+                message: "Conversation not found"
+            });
+        }
+
+        // 4. Count unread messages sent by other users
+        const unreadCount = await messageModel.countDocuments({
+            conversation: conversationId,
+            sender: { $ne: currentUserId },
+            isRead: false
+        });
+
+        // 5. Return unread count
+        return res.status(200).json({
+            status: true,
+            message: "Unread message count fetched successfully",
+            data: {
+                conversationId,
+                unreadCount
+            }
         });
 
     } catch (error) {
