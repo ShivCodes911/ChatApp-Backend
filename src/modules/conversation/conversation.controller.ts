@@ -142,3 +142,57 @@ export const deleteConversation = async (
         next(error);
     }
 };
+
+
+
+export const getSingleConversation = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        // 1. Get authenticated user
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized"
+            });
+        }
+
+        // 2. Get conversation ID from params
+        const { conversationId } = req.params;
+
+        if (!conversationId || Array.isArray(conversationId)) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid conversation ID"
+            });
+        }
+
+        // 3. Find conversation and verify user belongs to it
+        const conversation = await ConversationModel.findOne({
+            _id: conversationId,
+            participants: currentUserId
+        }).populate("participants", "name email");
+
+        // 4. Check conversation exists
+        if (!conversation) {
+            return res.status(404).json({
+                status: false,
+                message: "Conversation not found"
+            });
+        }
+
+        // 5. Return conversation
+        return res.status(200).json({
+            status: true,
+            message: "Conversation fetched successfully",
+            data: conversation
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
