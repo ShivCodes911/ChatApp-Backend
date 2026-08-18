@@ -12,5 +12,4 @@ router.patch("/conversations/:conversationId/messages/read",userAuthMiddleware,m
 router.patch("/conversations/:conversationId/messages/:messageId",userAuthMiddleware,editMessage);
 router.get("/:conversationId/unread",userAuthMiddleware,getUnreadMessageCount);
 
-
 export default router;

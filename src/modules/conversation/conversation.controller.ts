@@ -1,5 +1,7 @@
 import ConversationModel from "../../models/conversation.model.js"
 import userModel from "../../models/user.model.js";
+
+import messageModel from "../../models/message.model.js";
 import type { Request,Response,NextFunction } from "express";
 
 
@@ -78,4 +80,65 @@ export const getConversation =async(req:Request,res:Response,next:NextFunction)=
         next(error);
         
     }
-}
+};
+
+
+export const deleteConversation = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        // 1. Get current authenticated user
+        const currentUserId = req.user?.userId;
+
+        if (!currentUserId) {
+            return res.status(401).json({
+                status: false,
+                message: "Unauthorized"
+            });
+        }
+
+        // 2. Get conversation ID from params
+        const { conversationId } = req.params;
+
+        if (!conversationId || Array.isArray(conversationId)) {
+            return res.status(400).json({
+                status: false,
+                message: "Invalid conversation ID"
+            });
+        }
+
+        // 3. Check that the current user belongs to the conversation
+        const conversation = await ConversationModel.findOne({
+            _id: conversationId,
+            participants: currentUserId
+        });
+
+        if (!conversation) {
+            return res.status(404).json({
+                status: false,
+                message: "Conversation not found"
+            });
+        }
+
+        // 4. Delete all messages belonging to this conversation
+        await messageModel.deleteMany({
+            conversation: conversationId
+        });
+
+        // 5. Delete the conversation
+        await ConversationModel.deleteOne({
+            _id: conversationId
+        });
+
+        // 6. Return success
+        return res.status(200).json({
+            status: true,
+            message: "Conversation deleted successfully"
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
